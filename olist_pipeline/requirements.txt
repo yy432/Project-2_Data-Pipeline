@@ -1,0 +1,22 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# requirements.txt — tools you install with pip
+#
+# NOTE: tap-csv and target-bigquery are Singer plugins managed by Meltano.
+#       They are NOT pip packages. Install them with:
+#           meltano install
+#       Their pip_urls are declared in meltano.yml and resolved automatically.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Meltano orchestrator
+meltano>=3.3.0
+
+# dbt + BigQuery adapter (used by meltano invoke dbt-bigquery, and standalone)
+dbt-core>=1.7.0,<2.0.0
+dbt-bigquery>=1.7.0,<2.0.0
+
+# SQL linting
+sqlfluff>=2.3.0
+sqlfluff-templater-dbt>=2.3.0
+
+# Dev utilities
+python-dotenv>=1.0.0

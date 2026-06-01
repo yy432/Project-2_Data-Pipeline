@@ -1,0 +1,103 @@
+name: Olist Pipeline CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily at 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+  DBT_TARGET: dev
+
+jobs:
+
+  # ─── 1. Lint & compile ────────────────────────────────────────────────────
+  lint:
+    name: dbt compile (lint)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install meltano dbt-bigquery sqlfluff
+
+      - name: Write GCP credentials
+        run: echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
+
+      - name: meltano install
+        run: meltano install
+
+      - name: dbt deps
+        run: meltano invoke dbt-bigquery deps
+
+      - name: dbt compile
+        run: meltano invoke dbt-bigquery compile
+
+      - name: sqlfluff lint
+        run: |
+          sqlfluff lint transform/models \
+            --dialect bigquery \
+            --templater dbt \
+            --ignore parsing
+
+  # ─── 2. Test & run (prod branch only) ────────────────────────────────────
+  deploy:
+    name: EL + Transform (prod)
+    needs: lint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
+    env:
+      DBT_TARGET: prod
+      MELTANO_ENVIRONMENT: prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install meltano
+
+      - name: Write GCP credentials
+        run: echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
+
+      - name: meltano install
+        run: meltano install
+
+      - name: Prepare CSV data
+        run: python scripts/prepare_data.py --src data_source/ --dst data/
+
+      - name: Run EL job
+        run: meltano --environment prod run tap-csv target-bigquery
+
+      - name: dbt deps
+        run: meltano invoke dbt-bigquery deps
+
+      - name: dbt run
+        run: meltano invoke dbt-bigquery run
+
+      - name: dbt test
+        run: meltano invoke dbt-bigquery test
+
+      - name: dbt source freshness
+        run: meltano invoke dbt-bigquery freshness
+        continue-on-error: true  # warn but don't fail the pipeline
+
+      - name: Generate dbt docs
+        run: meltano invoke dbt-bigquery docs-generate

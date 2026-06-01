@@ -1,0 +1,33 @@
+version: 2
+
+models:
+
+  - name: fct_customer_ltv
+    description: >
+      All-time customer lifetime metrics with RFM scoring and segment labels.
+      Grain: one row per customer_unique_id.
+    columns:
+      - name: customer_key
+        tests: [not_null, unique]
+      - name: customer_segment
+        tests:
+          - accepted_values:
+              values: [Champion, "Loyal Customer", "New Customer",
+                       "At Risk", Hibernating, Lost, "Potential Loyalist"]
+      - name: lifetime_revenue
+        tests: [not_null]
+      - name: rfm_total_score
+        tests: [not_null]
+
+  - name: fct_seller_performance
+    description: >
+      All-time seller performance: revenue, delivery SLA, review scores, tier.
+      Grain: one row per seller_key.
+    columns:
+      - name: seller_key
+        tests: [not_null, unique]
+      - name: performance_tier
+        tests:
+          - accepted_values:
+              values: ["Top Performer", "Good Performer",
+                       "Average Performer", "Needs Improvement"]

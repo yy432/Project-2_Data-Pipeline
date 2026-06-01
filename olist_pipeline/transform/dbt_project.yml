@@ -1,0 +1,61 @@
+name: olist_transform
+version: "1.0.0"
+config-version: 2
+
+profile: olist_bigquery
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# ──────────────────────────────────────────────
+# Model configurations
+# ──────────────────────────────────────────────
+models:
+  olist_transform:
+
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags: ["staging"]
+
+    intermediate:
+      +materialized: ephemeral
+      +tags: ["intermediate"]
+
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ["marts"]
+
+      core:
+        +materialized: table
+
+      finance:
+        +materialized: table
+
+      marketing:
+        +materialized: table
+
+# ──────────────────────────────────────────────
+# Variables  (override with --vars flag or dbt Cloud env vars)
+# ──────────────────────────────────────────────
+vars:
+  raw_schema: "olist_raw_dev"       # source raw dataset
+  start_date: "2016-01-01"
+
+# ──────────────────────────────────────────────
+# Seeds
+# ──────────────────────────────────────────────
+seeds:
+  olist_transform:
+    +schema: seeds
+    +quote_columns: false

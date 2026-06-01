@@ -1,0 +1,33 @@
+name: 'olist_transform'
+version: '1.0.0'
+profile: 'olist_transform'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  olist_transform:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      +materialized: table
+      core:
+        +materialized: table
+      finance:
+        +materialized: table
+      marketing:
+        +materialized: table
+
+vars:
+  raw_schema: "olist_raw_dev"

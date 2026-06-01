@@ -1,0 +1,99 @@
+version: 1
+send_anonymous_usage_stats: false
+project_id: olist-ecommerce-pipeline
+
+default_environment: dev
+
+environments:
+  - name: dev
+    config:
+      plugins:
+        loaders:
+          - name: target-bigquery
+            config:
+              dataset: olist_raw_dev
+  - name: staging
+    config:
+      plugins:
+        loaders:
+          - name: target-bigquery
+            config:
+              dataset: olist_raw_staging
+  - name: prod
+    config:
+      plugins:
+        loaders:
+          - name: target-bigquery
+            config:
+              dataset: olist_raw_prod
+
+plugins:
+  extractors:
+    - name: tap-csv
+      variant: meltanolabs
+      namespace: tap_csv
+      # tap-csv is NOT on PyPI — installed from GitHub by Meltano.
+      # Do NOT add to requirements.txt; run `meltano install` instead.
+      pip_url: git+https://github.com/MeltanoLabs/tap-csv.git
+      executable: tap-csv
+      capabilities:
+        - catalog
+        - discover
+        - about
+        - stream-maps
+      config:
+        csv_files_definition: extract/tap_csv_files.json
+
+  loaders:
+  - name: target-bigquery
+    variant: z3z1ma
+    namespace: target_bigquery
+    pip_url: z3-target-bigquery>=0.6.0
+    executable: target-bigquery
+    config:
+      project: ${BIGQUERY_PROJECT_ID}
+      dataset: olist_raw_dev
+      location: US
+      credentials_path: ${GOOGLE_APPLICATION_CREDENTIALS}
+      denormalized: true
+      method: storage_write_api
+
+  utilities:
+    - name: dbt-bigquery
+      namespace: dbt_bigquery
+      pip_url: dbt-core dbt-bigquery
+      executable: dbt
+      commands:
+        compile: compile --profiles-dir transform/profiles --project-dir transform
+        run: run --profiles-dir transform/profiles --project-dir transform
+        test: test --profiles-dir transform/profiles --project-dir transform
+        docs-generate: docs generate --profiles-dir transform/profiles --project-dir transform
+        docs-serve: docs serve --profiles-dir transform/profiles --project-dir transform
+        seed: seed --profiles-dir transform/profiles --project-dir transform
+        freshness: source freshness --profiles-dir transform/profiles --project-dir transform
+        run-full: run --profiles-dir transform/profiles --project-dir transform --full-refresh
+        run-staging: run --profiles-dir transform/profiles --project-dir transform --select staging
+        run-marts: run --profiles-dir transform/profiles --project-dir transform --select marts
+        run-intermediate: run --profiles-dir transform/profiles --project-dir transform --select intermediate
+
+jobs:
+  - name: el-full
+    tasks:
+      - tap-csv target-bigquery
+
+  - name: el-and-transform
+    tasks:
+      - tap-csv target-bigquery
+      - dbt-bigquery:run
+      - dbt-bigquery:test
+
+  - name: transform-only
+    tasks:
+      - dbt-bigquery:run
+      - dbt-bigquery:test
+
+schedules:
+  - name: daily-el-and-transform
+    interval: "@daily"
+    job: el-and-transform
+    start_date: "2024-01-01 00:00:00"

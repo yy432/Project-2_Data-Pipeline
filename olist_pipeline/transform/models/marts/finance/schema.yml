@@ -1,0 +1,27 @@
+version: 2
+
+models:
+
+  - name: fct_revenue_by_seller
+    description: >
+      Monthly revenue aggregated by seller × product category.
+      Grain: seller_key × year_month × product_category.
+    columns:
+      - name: seller_key
+        tests: [not_null]
+      - name: year_month
+        tests: [not_null]
+      - name: gross_revenue
+        tests: [not_null]
+
+  - name: fct_payment_analysis
+    description: >
+      Monthly payment method analysis with installment statistics.
+      Grain: payment_type × year_month × order_status.
+    columns:
+      - name: payment_type
+        tests: [not_null]
+      - name: year_month
+        tests: [not_null]
+      - name: total_payment_value
+        tests: [not_null]

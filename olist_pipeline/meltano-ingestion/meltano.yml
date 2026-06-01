@@ -1,0 +1,28 @@
+version: 1
+default_environment: dev
+project_id: adfecf15-7fbd-4c97-a8a7-671a8e475e69
+environments:
+- name: dev
+- name: staging
+- name: prod
+plugins:
+  extractors:
+  - name: tap-csv
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-csv.git
+    config:
+      csv_files_definition: extract/tap_csv_files.json
+  loaders:
+  - name: target-bigquery
+    variant: z3z1ma
+    pip_url: git+https://github.com/z3z1ma/target-bigquery.git
+    config:
+      project: data-pipeline-1-498005
+      dataset: olist_raw_dev
+      credentials_path: 
+        /home/yj/helloworld/project2-datapipeline/rev2/Project-2_Data-Pipeline/olist_pipeline/data-pipeline-1-498005-c62f60f964d0.json
+      method: batch_job
+  utilities:
+  - name: dbt-bigquery
+    variant: dbt-labs
+    pip_url: dbt-core dbt-bigquery meltano-dbt-ext~=0.5.0

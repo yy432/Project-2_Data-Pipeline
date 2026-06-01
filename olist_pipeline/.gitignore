@@ -1,0 +1,28 @@
+# Environment & secrets
+.env
+*.json
+!extract/tap_csv_files.json
+/tmp/gcp-key.json
+
+# Data files (large CSVs – managed separately)
+data/
+
+# Meltano
+.meltano/
+
+# dbt
+transform/target/
+transform/dbt_packages/
+transform/logs/
+transform/.user.yml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db

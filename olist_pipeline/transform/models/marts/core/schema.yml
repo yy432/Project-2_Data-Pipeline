@@ -1,0 +1,109 @@
+version: 2
+
+models:
+
+  - name: dim_customers
+    description: >
+      Unique customer dimension. Deduplicates customer_id sessions to
+      customer_unique_id. Enriched with geolocation and Brazil region.
+    columns:
+      - name: customer_key
+        description: Natural key (customer_unique_id).
+        tests: [not_null, unique]
+      - name: city
+      - name: state
+        tests: [not_null]
+      - name: region
+        tests:
+          - accepted_values:
+              values: [Southeast, South, Northeast, Central-West, North, Unknown]
+
+  - name: dim_sellers
+    description: Seller dimension enriched with geolocation and region.
+    columns:
+      - name: seller_key
+        tests: [not_null, unique]
+      - name: state
+        tests: [not_null]
+
+  - name: dim_products
+    description: Product dimension with English category, size, and weight tiers.
+    columns:
+      - name: product_key
+        tests: [not_null, unique]
+      - name: category_english
+        tests: [not_null]
+      - name: weight_tier
+        tests:
+          - accepted_values:
+              values: [light, medium, heavy, very_heavy]
+      - name: volume_tier
+        tests:
+          - accepted_values:
+              values: [small, medium, large, very_large]
+
+  - name: dim_date
+    description: Calendar dimension 2016–2022 with standard date attributes.
+    columns:
+      - name: date_key
+        tests: [not_null, unique]
+
+  - name: fct_orders
+    description: >
+      Central order fact. One row per order. Aggregates items, payments,
+      and reviews. Foreign keys to dim_customers and dim_date.
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+      - name: date_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: order_gross_total
+        tests: [not_null]
+      - name: total_payment_value
+        tests: [not_null]
+
+  - name: fct_order_items
+    description: >
+      Line-item fact. One row per order + item. Foreign keys to
+      dim_products, dim_sellers, dim_customers, dim_date.
+    columns:
+      - name: order_id
+        tests: [not_null]
+      - name: order_item_id
+        tests: [not_null]
+      - name: product_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_key
+      - name: seller_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sellers')
+              field: seller_key
+      - name: customer_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+      - name: date_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: item_price
+        tests: [not_null]
